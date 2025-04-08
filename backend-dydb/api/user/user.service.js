@@ -54,8 +54,7 @@ async function getById(userId) {
 async function getByUsername(username) {
     try {
         const collection = await dbService.getCollection('users')
-        const user = await collection.findOne({ 
-            TableName: 'users',
+        const user = await collection.findOne({
             FilterExpression: 'username = :username',
             ExpressionAttributeValues: {
                 ':username': username
@@ -63,7 +62,7 @@ async function getByUsername(username) {
         })
         return user
     } catch (err) {
-        logger.error(`while finding user by username: ${username}`, err)
+        logger.error(`Failed to get user by username: ${username}`, err)
         throw err
     }
 }
@@ -110,16 +109,27 @@ async function update(user) {
 
 async function add(user) {
     try {
-        // Validate that username is not taken
-        const existingUser = await getByUsername(user.username)
-        if (existingUser) throw new Error('Username already taken')
-
-        // Generate unique user ID
-        const userId = utilService.makeId()
+        // Generate a unique ID for the new user
+        const userId = uuidv4()
         
         const collection = await dbService.getCollection('users')
+        
+        // Check if username already exists
+        const existingUser = await collection.findOne({
+            FilterExpression: 'username = :username',
+            ExpressionAttributeValues: {
+                ':username': user.username
+            }
+        })
+
+        if (existingUser) {
+            throw new Error('Username already taken')
+        }
+
+        // Prepare user document for DynamoDB
         const userToAdd = {
-            id: userId,
+            user456: userId,      // Primary key - changed from 'id' to 'user456'
+            id: userId,           // Keep this for backwards compatibility
             username: user.username,
             password: user.password,
             fullname: user.fullname,
@@ -128,9 +138,14 @@ async function add(user) {
             count: 0
         }
 
+        // Insert the new user
         await collection.insertOne(userToAdd)
-        delete userToAdd.password
-        return userToAdd
+        
+        // Remove password before returning
+        const userToReturn = { ...userToAdd }
+        delete userToReturn.password
+        
+        return userToReturn
         
     } catch (err) {
         logger.error('Failed to add user', err)

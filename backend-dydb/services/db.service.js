@@ -31,7 +31,7 @@ async function connect() {
 
 async function getCollection(collectionName) {
     try {
-        const tableName = collectionName // In DynamoDB, this will be your table name
+        const tableName = 'users'
         return {
             findOne: async (query) => {
                 try {
@@ -72,11 +72,13 @@ async function getCollection(collectionName) {
             },
             insertOne: async (doc) => {
                 try {
+                    if (!doc.user456) {
+                        throw new Error('Missing required primary key user456')
+                    }
                     const command = new PutCommand({
                         TableName: 'users',
-                        Item: {
-                            ...doc
-                        }
+                        Item: doc,
+                        ConditionExpression: 'attribute_not_exists(user456)'
                     })
                     await docClient.send(command)
                     return doc
