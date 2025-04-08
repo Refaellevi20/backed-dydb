@@ -10,7 +10,11 @@
     "server:prod": "set NODE_ENV=production&&node server.js",
     "server:prod:win": "set NODE_ENV=production&&node server.js",
     "build": "npm install && npm run build:frontend",
-    "deploy": "aws s3 sync ./public s3://your-bucket-name"
+    "deploy": "aws s3 sync ./public s3://your-bucket-name",
+    "docker:build": "docker-compose build",
+    "docker:up": "docker-compose up",
+    "docker:down": "docker-compose down",
+    "docker:logs": "docker-compose logs -f"
   },
   "author": "Me",
   "license": "ISC",

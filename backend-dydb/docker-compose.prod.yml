@@ -1,0 +1,11 @@
+version: '3.8'
+
+services:
+  backend:
+    environment:
+      - NODE_ENV=production
+    command: ["npm", "run", "start"]
+
+  nginx:
+    volumes:
+      - ./nginx/prod.conf:/etc/nginx/nginx.conf 

@@ -20,7 +20,12 @@ if (process.env.NODE_ENV === 'production') {
 } else {
     // Configuring CORS for developmentss
     const corsOptions = {
-   origin: ['http://127.0.0.1:5173', 'http://localhost:5173',
+        origin: [
+            'http://localhost',
+            'http://localhost:80',
+            'http://127.0.0.1',
+            'http://127.0.0.1:80',
+            'http://127.0.0.1:5173', 'http://localhost:5173',
             'http://127.0.0.1:5174', 'http://localhost:5174',
             'http://127.0.0.1:5175', 'http://localhost:5175',
             'http://127.0.0.1:5176', 'http://localhost:5176',
