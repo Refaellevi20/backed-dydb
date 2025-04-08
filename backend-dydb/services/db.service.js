@@ -15,6 +15,7 @@ const docClient = DynamoDBDocumentClient.from(client)
 
 async function connect() {
     try {
+        console.log('AWS Region:', process.env.AWS_REGION)
         // Test connection
         const command = new ScanCommand({
             TableName: 'users',
@@ -28,79 +29,82 @@ async function connect() {
     }
 }
 
-async function getCollection(tableName) {
-    return {
-        findOne: async (query) => {
-            try {
-                if (query.username) {
-                    // Search by username
+async function getCollection(collectionName) {
+    try {
+        const tableName = collectionName // In DynamoDB, this will be your table name
+        return {
+            findOne: async (query) => {
+                try {
+                    if (query.Key) {
+                        // Direct key lookup
+                        const command = new GetCommand({
+                            TableName: 'users',
+                            Key: query.Key
+                        })
+                        const response = await docClient.send(command)
+                        return response.Item
+                    } else if (query.FilterExpression) {
+                        // Scan with filter
+                        const command = new ScanCommand({
+                            TableName: 'users',
+                            FilterExpression: query.FilterExpression,
+                            ExpressionAttributeValues: query.ExpressionAttributeValues
+                        })
+                        const response = await docClient.send(command)
+                        return response.Items?.[0]
+                    }
+                } catch (err) {
+                    logger.error('Failed to find one:', err)
+                    throw err
+                }
+            },
+            find: async () => {
+                try {
                     const command = new ScanCommand({
-                        TableName: tableName,
-                        FilterExpression: 'username = :username',
-                        ExpressionAttributeValues: {
-                            ':username': query.username
+                        TableName: 'users'
+                    })
+                    const response = await docClient.send(command)
+                    return response.Items
+                } catch (err) {
+                    logger.error('Failed to find:', err)
+                    throw err
+                }
+            },
+            insertOne: async (doc) => {
+                try {
+                    const command = new PutCommand({
+                        TableName: 'users',
+                        Item: {
+                            ...doc
                         }
                     })
-                    const response = await docClient.send(command)
-                    return response.Items[0]
-                } else {
-                    // Search by primary key
-                    const command = new GetCommand({
-                        TableName: tableName,
-                        Key: { user456: query.id || query._id || query }
-                    })
-                    const response = await docClient.send(command)
-                    return response.Item
+                    await docClient.send(command)
+                    return doc
+                } catch (err) {
+                    logger.error('Failed to insert:', err)
+                    throw err
                 }
-            } catch (err) {
-                logger.error('Failed to find one:', err)
-                throw err
-            }
-        },
-        find: async () => {
-            try {
-                const command = new ScanCommand({
-                    TableName: tableName
-                })
-                const response = await docClient.send(command)
-                return response.Items
-            } catch (err) {
-                logger.error('Failed to find:', err)
-                throw err
-            }
-        },
-        insertOne: async (doc) => {
-            try {
-                const command = new PutCommand({
-                    TableName: tableName,
-                    Item: {
-                        user456: doc.id || doc._id,
-                        ...doc
-                    }
-                })
-                await docClient.send(command)
-                return doc
-            } catch (err) {
-                logger.error('Failed to insert:', err)
-                throw err
-            }
-        },
-        updateOne: async (query, update) => {
-            try {
-                const command = new PutCommand({
-                    TableName: tableName,
-                    Item: {
-                        user456: query.id || query._id,
-                        ...update.$set
-                    }
-                })
-                await docClient.send(command)
-                return update.$set
-            } catch (err) {
-                logger.error('Failed to update:', err)
-                throw err
+            },
+            updateOne: async (query, update) => {
+                try {
+                    const command = new PutCommand({
+                        TableName: 'users',
+                        Item: {
+                            user456: query.id || query._id,
+                            ...update.$set
+                        }
+                    })
+                    await docClient.send(command)
+                    return update.$set
+                } catch (err) {
+                    logger.error('Failed to update:', err)
+                    throw err
+                }
             }
         }
+    } catch (err) {
+        logger.error('Failed to get collection:', err)
+        throw err
     }
 }
 

@@ -3,6 +3,7 @@ const logger = require('../../services/logger.service')
 const { v4: uuidv4 } = require('uuid')
 const { DynamoDBClient, ScanCommand } = require('@aws-sdk/client-dynamodb')
 const { DynamoDBDocumentClient } = require('@aws-sdk/lib-dynamodb')
+const utilService = require('../../services/util.service')
 
 const client = new DynamoDBClient({
     region: process.env.AWS_REGION,
@@ -52,18 +53,17 @@ async function getById(userId) {
 
 async function getByUsername(username) {
     try {
-        const command = new ScanCommand({
+        const collection = await dbService.getCollection('users')
+        const user = await collection.findOne({ 
             TableName: 'users',
             FilterExpression: 'username = :username',
             ExpressionAttributeValues: {
                 ':username': username
             }
         })
-        
-        const response = await docClient.send(command)
-        return response.Items[0]
+        return user
     } catch (err) {
-        logger.error(`Cannot find user with username: ${username}`, err)
+        logger.error(`while finding user by username: ${username}`, err)
         throw err
     }
 }
@@ -110,22 +110,30 @@ async function update(user) {
 
 async function add(user) {
     try {
+        // Validate that username is not taken
+        const existingUser = await getByUsername(user.username)
+        if (existingUser) throw new Error('Username already taken')
+
+        // Generate unique user ID
+        const userId = utilService.makeId()
+        
         const collection = await dbService.getCollection('users')
         const userToAdd = {
-            id: uuidv4(),
+            id: userId,
             username: user.username,
             password: user.password,
             fullname: user.fullname,
-            imgUrl: user.imgUrl || "https://robohash.org/vitaequovelit.png?size=50x50&set=set4",
-            isOwner: user.isOwner || false,
+            imgUrl: user.imgUrl || 'https://res.cloudinary.com/dmxsqwvwv/image/upload/v1705834574/default-user-profile_nqnj3k.png',
+            isOwner: false,
             count: 0
         }
-        await collection.findOne({
-            Item: userToAdd
-        })
+
+        await collection.insertOne(userToAdd)
+        delete userToAdd.password
         return userToAdd
+        
     } catch (err) {
-        logger.error('Cannot add user', err)
+        logger.error('Failed to add user', err)
         throw err
     }
 }

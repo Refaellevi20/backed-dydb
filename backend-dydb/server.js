@@ -1,12 +1,10 @@
-
-
+require('dotenv').config()
 const express = require('express')
 const cors = require('cors')
 const path = require('path')
 const cookieParser = require('cookie-parser')
 const dbService = require('./services/db.service')
 const logger = require('./services/logger.service')
-require('dotenv').config()
 
 const app = express()
 const http = require('http').createServer(app)

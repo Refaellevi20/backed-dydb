@@ -33,17 +33,13 @@ async function login(username, password) {
 }
    
 
-async function signup({username, password, fullname, imgUrl= "https://robohash.org/vitaequovelit.png?size=50x50&set=set4",count}) {
+async function signup(username, password, fullname) {
     const saltRounds = 10
-
     logger.debug(`auth.service - signup with username: ${username}, fullname: ${fullname}`)
     if (!username || !password || !fullname) return Promise.reject('Missing required signup information')
 
-    const userExist = await userService.getByUsername(username)
-    if (userExist) return Promise.reject('Username already taken')
-
     const hash = await bcrypt.hash(password, saltRounds)
-    return userService.add({ username, password: hash, fullname, imgUrl })
+    return userService.add({ username, password: hash, fullname })
 }
 
 
