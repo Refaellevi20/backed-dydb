@@ -22,6 +22,7 @@ if (process.env.NODE_ENV === 'production') {
     const corsOptions = {
         origin: [
             'http://localhost',
+            'http://backend-dydb-app-2025.s3-website-eu-west-1.amazonaws.com',
             'http://localhost:80',
             'http://127.0.0.1',
             'http://127.0.0.1:80',
