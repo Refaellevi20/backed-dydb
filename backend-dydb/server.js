@@ -5,7 +5,8 @@ const path = require('path')
 const cookieParser = require('cookie-parser')
 const dbService = require('./services/db.service')
 const logger = require('./services/logger.service')
-const { Server } = require('socket.io')
+
+// const { Server } = require('socket.io')
 
 const app = express()
 const http = require('http').createServer(app)
@@ -16,22 +17,29 @@ app.use(cookieParser())
 app.use(express.json())
 
 // CORS configuration
-const corsOptions = {
-    origin: [
-        'http://backend-dydb-app-2025.s3-website-eu-west-1.amazonaws.com',
-        'http://localhost:5173',
-        'http://localhost:3030'
-    ],
-    credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'Access-Control-Allow-Origin']
+if (process.env.NODE_ENV === 'production') {
+    app.use(express.static(path.resolve(__dirname, 'public')));
+    // Add CORS for production
+    const corsOptions = {
+        origin: ['http://your-alb-domain.region.elb.amazonaws.com', 'https://your-s3-bucket.s3-website.region.amazonaws.com'],
+        credentials: true,
+        methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+        allowedHeaders: ['Content-Type', 'Authorization']
+    };
+    app.use(cors(corsOptions));
+} else {
+    const corsOptions = {
+        origin: ['http://127.0.0.1:5173', 'http://localhost:5173', 'http://localhost:3000'],
+        credentials: true,
+        methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+        allowedHeaders: ['Content-Type', 'Authorization']
+    };
+    app.use(cors(corsOptions));
 }
 
-app.use(cors(corsOptions))
 
 // Enable pre-flight across-the-board
-app.options('*', cors(corsOptions))
-
+const customerRoutes = require('./api/customers/customer.routes');
 const authRoutes = require('./api/auth/auth.routes')
 const userRoutes = require('./api/user/user.routes')
 
@@ -39,13 +47,12 @@ const setupAsyncLocalStorage = require('./middlewares/setupAls.middleware')
 app.all('*', setupAsyncLocalStorage)
 const { setupSocketAPI } = require('./services/socket.service')
 
+app.use('/api/customers', customerRoutes);
 app.use('/api/auth', authRoutes)
 app.use('/api/user', userRoutes)
 
 // Socket.IO configuration
-const io = new Server(http, {
-    cors: corsOptions
-})
+
 
 if (process.env.NODE_ENV === 'production') {
     app.use(express.static(path.resolve(__dirname, 'public')))
@@ -58,7 +65,7 @@ app.get('/**', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'))
 })
 
-const PORT = process.env.PORT || 3035
+const PORT = process.env.PORT || 3036
 
 async function startServer() {
     try {
